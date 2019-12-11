@@ -1,82 +1,100 @@
-import "./App.css";
-import React, { Component } from 'react';
-import axios from 'axios';
+import React from 'react';
+import './App.css';
 
-class App extends Component {
+class App extends React.Component {
   constructor() {
-    super()
-
-    // set some initial/default state values
+    super();
     this.state = {
-      breed: 'husky',
-      images: []
-    }
+      userName: "techgawd",
+      user: {},
+      followers: [],
+      counter: 0
+    };
+  }
+  changeUserName = (userName) => {
+    this.setState({ userName });
+  }
+
+  fetchUser = () => {
+    fetch(`https://api.github.com/users/${this.state.userName}`)
+      .then(res => res.json())
+      .then(data => this.setState({ user: data }));
+  }
+
+  fetchFollowers = () => {
+    fetch(`https://api.github.com/users/${this.state.userName}/followers`)
+      .then(res => res.json())
+      .then(data => this.setState({ followers: data }));
   }
 
   componentDidMount() {
-    // fetch images for the default state value (husky)
-    this.fetchDogImages()
+    this.fetchUser();
+    this.fetchFollowers();
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // this if statement prevents an infinite loop
-    // by only re-fetching if the breed has changed since the last update
-    //
-    // ----- same idea -----
-    //   useEffect(() => {
-    // 
-    //   }, [breed])
-    //
-    if (prevState.breed !== this.state.breed) {
-      // give the user feedback that something is happening
-      // by clearing out the current images while fetching new ones
-      this.setState({ images: [] })
-
-      // re-fetch images with new state value
-      this.fetchDogImages()
+    if (prevState.userName !== this.state.userName) {
+      this.fetchUser();
+      this.fetchFollowers();
     }
-  }
 
-  // extract this function from lifecycle event since it's used multiple times
-  fetchDogImages = () => {
-    axios.get(`https://dog.ceo/api/breed/${this.state.breed}/images`)
-      .then(result => {
-        this.setState({
-          images: result.data.message
-        })
-      })
-      .catch(error => {
-        console.log('error:', error)
-      })
-  }
-
-  // make our select field controlled by react state
-  handleChange = (event) => {
-    this.setState({
-      breed: event.target.value
-    })
   }
 
   render() {
     return (
-      <>
-        <h1>The Dog Website</h1>
-
-        <select value={this.state.breed} onChange={this.handleChange}>
-          <option value="husky">Husky</option>
-          <option value="beagle">Beagle</option>
-          <option value="corgi">Corgi</option>
-          <option value="boxer">Boxer</option>
-        </select>
-
-        <div>
-          {this.state.images.map((image, index) => (
-            <img key={index} src={image} alt="Dog" />
-          ))}
-        </div>
-      </>
-    )
+      <div className="App">
+        <Search changeUserName={this.changeUserName} />
+        <UserCard user={this.state.user} followers={this.state.followers} />
+      </div>
+    );
   }
+}
+
+class Search extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      search: "",
+    };
+  }
+
+  handleChange = event => {
+    this.setState({ [event.target.name]: event.target.value });
+  }
+
+  handleSubmit = event => {
+    event.preventDefault();
+    this.props.changeUserName(this.state.search);
+    this.setState({ search: "" });
+  }
+
+  render() {
+    return (
+      <form onSubmit={this.handleSubmit} >
+        <input type="text"
+               name="search"
+               placeholder="search"
+               value={this.state.search}
+               onChange={this.handleChange} />
+        <button type="submit">Search for a User</button>
+      </form>
+    );
+  }
+}
+
+function UserCard(props) {
+  return (
+    <div className="user-card">
+      <h2>{props.user.login}</h2>
+      <p>{props.user.location}</p>
+      <p>{props.user.url}</p>
+      <div>
+        {props.followers.map(follower => (
+          <div key={follower.id}>{follower.login}</div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default App;
